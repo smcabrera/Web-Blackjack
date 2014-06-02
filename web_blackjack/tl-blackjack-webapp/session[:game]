@@ -1,0 +1,15 @@
+
+[1mFrom:[0m /home/stephen/projects/tealeaf/web_blackjack/tl-blackjack-webapp/main.rb @ line 30 self.GET /:
+
+    [1;34m25[0m:   [32mif[0m session[[33m:name[0m]
+    [1;34m26[0m:     erb [33m:game[0m
+    [1;34m27[0m:   [32melse[0m
+    [1;34m28[0m:     erb [33m:ask_name[0m
+    [1;34m29[0m:   [32mend[0m
+ => [1;34m30[0m:   binding.pry
+    [1;34m31[0m: [32mend[0m
+    [1;34m32[0m: 
+    [1;34m33[0m: [1;30m#When web app first loads ensure session has 'username' set.[0m
+    [1;34m34[0m: [1;30m#If not, redirect to a form to set the username.[0m
+    [1;34m35[0m: 
+

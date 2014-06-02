@@ -1,0 +1,29 @@
+<br>
+<br>
+<%= session[:name] %>'s Hand
+<br>
+<% if session[:player_hand] %>
+  <%= display_hand( session[:player_hand] ) %>
+<% end %>
+<br>
+Dealer's Hand:<br>
+<% if session[:dealer_hand] %>
+  <%= display_hand( session[:dealer_hand] ) %>
+<% end %>
+
+<br>
+<%= session[:name] %>, would you like to<br>
+Hit or Stay
+<form method="post" action="/hit">
+  <button type="submit" class='btn btn-primary'>Hit</button>
+<form method="post" action="/stay">
+  <button type="submit" class='btn btn-warning'>Stay</button>
+</form>
+
+<br>
+<br>
+<br>
+<%= session[:deck].size %> cards remaining in the deck:<br>
+<%= session[:deck] %>
+
+
