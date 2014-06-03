@@ -5,7 +5,26 @@ require 'pry'
 set :sessions, true
 
 helpers do
-  # Put your helper methods here, defining them normally
+
+  def calc_value(hand)
+    value = 0
+    total = 0
+    ace = false # ask about a better way...
+    hand.each do |card|
+      if card[0] == 'j' || card[0] == 'q' || card[0] == 'k'
+        value = 10
+      elsif card[0] == 'a'
+        value = 1
+        ace = true
+      else
+        value = card[0].to_i
+      end
+        total += value
+    end
+    # aces count as 11 when it would be beneficial for them to do so
+    total += 10 if ace == true && total < 12
+    total
+  end
 
   def init_deck
     cards = []
@@ -120,12 +139,18 @@ end
 # then finally the views.
 #
 # Model:
-# That'll just be these session variables. Let's initiate them, and create some helper 
-# methods describing how they function.
+# That'll just be these session variables. Let's initiate them, and create some helper
+# methods that allow us to manipulate them
+#
+# Controller: (actions)
+# Players and dealers can be dealt cards
+# Players can bet
+# Gameplay
 #
 #Tasks:
-#
-#
+# Include helper function to calculate total
+# Implement basic gameplay
+# Change view based on game state
 #
 #
 
