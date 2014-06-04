@@ -6,20 +6,34 @@ set :sessions, true
 
 helpers do
 
+  def valid_name?(name)
+    if name == "" then false
+    elsif name.include? 'a' then true
+    elsif name.include? 'e' then true
+    elsif name.include? 'i' then true
+    elsif name.include? 'o' then true
+    elsif name.include? 'u' then true
+    else
+      false
+    end
+  end
+
   def calc_value(hand)
     value = 0
     total = 0
     ace = false # ask about a better way...
-    hand.each do |card|
-      if card[0] == 'j' || card[0] == 'q' || card[0] == 'k'
-        value = 10
-      elsif card[0] == 'a'
-        value = 1
-        ace = true
-      else
-        value = card[0].to_i
+    if hand
+      hand.each do |card|
+        if card[0] == 'j' || card[0] == 'q' || card[0] == 'k'
+          value = 10
+        elsif card[0] == 'a'
+          value = 1
+          ace = true
+        else
+          value = card[0].to_i
+        end
+          total += value
       end
-        total += value
     end
     # aces count as 11 when it would be beneficial for them to do so
     total += 10 if ace == true && total < 12
@@ -43,7 +57,7 @@ helpers do
     rank_names = {
     :'2'=> 'Two', :'3'=> 'Three', :'4'=> 'Four', :'5'=> 'Five',
     :'6'=> 'Six', :'7'=> 'Seven', :'8'=> 'Eight', :'9'=> 'Nine',
-    :'10'=> 'Ten', :'j'=> 'Jack', :'q'=> 'Queen', :'k'=> 'King', :'a'=> 'Ace'
+    :'10'=> 'Ten', :'j'=> 'jack', :'q'=> 'queen', :'k'=> 'king', :'a'=> 'ace'
     }
     rank_names[rank_symbol]
   end
@@ -51,7 +65,7 @@ helpers do
   def suit_name(card)
     suit_symbol = card[1].to_s.to_sym
     suit_names = {
-      :'c'=>'Clubs', :'d'=> 'Diamonds', :'h'=> 'Hearts', :'s'=> 'Spades'}
+      :'c'=>'clubs', :'d'=> 'diamonds', :'h'=> 'hearts', :'s'=> 'spades'}
     suit_names[suit_symbol]
   end
 
@@ -80,6 +94,28 @@ helpers do
   def hit
     session[:player_hand] << session[:deck].shift
   end
+
+  def dealer_hit
+    session[:dealer_hand] << session[:deck].shift
+  end
+
+  def card_image(card)
+    rank = ""
+    suit = ""
+    if card[0].to_i == 0
+      rank = rank_name(card)
+    else
+      rank = card[0].to_i
+    end
+    suit = suit_name(card)
+    "<img src='/images/cards/#{suit}_#{rank}.jpg' class='card_image'/>"
+  end
+end
+
+before do
+   @show_hit_or_stay_buttons = true
+   @show_dealer_hit_button = false
+   @game_over = false
 end
 
 get '/' do
@@ -90,30 +126,79 @@ get '/' do
   end
 end
 
-#When web app first loads ensure session has 'username' set.
-#If not, redirect to a form to set the username.
-post '/new_game' do
+get '/ask_name' do
+  erb :ask_name
+end
+
+post '/set_name' do
+  unless valid_name? params[:name]
+    @error = "Valid name is required"
+    halt erb :ask_name
+  end
+
+  session[:name] = params[:name]
   new_game
   redirect '/game'
 end
 
-post '/set_name' do
-  session[:name] = params[:name]
+get '/new_game' do
+  new_game
   redirect '/game'
 end
 
 get '/game' do
-  # Set initial game state
   erb :game
 end
 
-post '/hit' do
+post '/game/player/hit' do
   hit
+  @player_val = calc_value(session[:player_hand])
+  if @player_val > 21
+    @error = "Sorry, you bust..."
+    @show_hit_or_stay_buttons = false
+    @game_over = true
+  elsif @player_val == 21
+    @success = "Congratulations you hit blackjack"
+    @show_hit_or_stay_buttons = false
+    @game_over = true
+  end
+
   erb :game
 end
 
-post '/stay' do
+get '/game/dealer' do
+  @dealer_val = calc_value(session[:dealer_hand])
+  @show_hit_or_stay_buttons = false
+  if @dealer_val < 17
+    @show_dealer_hit_button = true
+  elsif @dealer_val == 21
+    @success = "Dealer hit blackjack"
+    @game_over = true
+  elsif @dealer_val > 21
+    @error = "Dealer busts"
+    @game_over = true
+  elsif @dealer_val < calc_value(session[:player_hand])
+    @success = "Player wins!"
+    @game_over = true
+  elsif @dealer_val >= calc_value(session[:player_hand])
+    @success = "Dealer wins."
+    @game_over = true
+  else
+    @error = "This condition shouldn't be reached..."
+  end
+
   erb :game
+end
+
+post '/game/player/stay' do
+  @success = "You have decided to stay"
+  @show_hit_or_stay_buttons = false
+  redirect '/game/dealer'
+end
+
+post '/game/dealer/hit' do
+  dealer_hit
+  redirect '/game/dealer'
 end
 
 ######################################################

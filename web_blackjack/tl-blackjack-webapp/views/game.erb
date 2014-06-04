@@ -1,27 +1,49 @@
-<br>
-<br>
-<%= session[:name] %>'s Hand
-<br>
-<% if session[:player_hand] %>
-  <%= display_hand( session[:player_hand] ) %>
+
+<div class="well">
+  <h4>Dealer's Hand</h4>
+  <% if session[:dealer_hand] %>
+    <% session[:dealer_hand].each do |card| %>
+      <%= card_image( card )%>
+      <% end %>
+  <% end %>
+  <% if @show_dealer_hit_button%>
+    <form method="post" action="/game/dealer/hit">
+      <input id="hit_form" type="submit" class='btn btn-primary btn-large' value="Hit"/>
+    </form>
+    <br>
+  <% end %>
+</div>
+
+<div class="well">
+  <h4><%= session[:name] %>'s Hand</h4>
+ <% if session[:player_hand] %>
+    <% session[:player_hand].each do |card| %>
+      <%= card_image( card )%>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="hit_stay_buttons">
+<% if @show_hit_or_stay_buttons %>
+  <form method="post" action="/game/player/hit">
+    <input id="hit_form" type="submit" class='btn btn-primary btn-large' value="Hit"/>
+  </form>
+
+  <form method="post" action="/game/player/stay">
+    <input id="stay_form" type="submit" class='btn btn-warning btn-large' value="Stay"/>
+  </form>
 <% end %>
 <br>
-Dealer's Hand:<br>
-<% if session[:dealer_hand] %>
-  <%= display_hand( session[:dealer_hand] ) %>
+
+<% if @game_over %>
+  <form method="get" action="/new_game">
+    <input type="submit" class='btn btn-primary btn-large' value="New Game?"/>
+  </form>
 <% end %>
 
 <br>
-<%= session[:name] %>, would you like to<br>
-Hit or Stay
-<form method="post" action="/hit">
-  <button type="submit" class='btn btn-primary'>Hit</button>
-<form method="post" action="/stay">
-  <button type="submit" class='btn btn-warning'>Stay</button>
-</form>
+<br>
 
-<br>
-<br>
-<br>
+</div>
 
 
