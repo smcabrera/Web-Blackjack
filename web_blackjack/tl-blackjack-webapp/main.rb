@@ -5,6 +5,9 @@ require 'pry'
 set :sessions, true
 
 helpers do
+  def valid_money?(money)
+    money.to_i > 0
+  end
 
   def valid_name?(name)
     if name == "" then false
@@ -89,6 +92,8 @@ helpers do
     session[:dealer_hand] = []
     session[:dealer_hand] << session[:deck].shift
     session[:dealer_hand] << session[:deck].shift
+    session[:bet] = 10
+    session[:money] ||= 100
   end
 
   def hit
@@ -110,12 +115,25 @@ helpers do
     suit = suit_name(card)
     "<img src='/images/cards/#{suit}_#{rank}.jpg' class='card_image'/>"
   end
+
+  def game_win
+    session[:money] += session[:bet]
+    @success += "<br>Congratulations! You won #{session[:bet]}$<br>You now have: #{session[:money]}$"
+    @game_over = true
+  end
+
+  def game_lose
+    session[:money] -= session[:bet]
+    @error += "<br>Sorry...you lost #{session[:bet]}$<br>You now have: #{session[:money]}$"
+    @game_over = true
+  end
 end
 
 before do
    @show_hit_or_stay_buttons = true
    @show_dealer_hit_button = false
    @game_over = false
+   @show_dealer_second_card = false
 end
 
 get '/' do
@@ -136,7 +154,14 @@ post '/set_name' do
     halt erb :ask_name
   end
 
+# Insert validation helper funciton here
+  unless valid_money? params[:money]
+    @error = "Please give a number greater than zero for starting money"
+    halt erb :ask_name
+  end
+
   session[:name] = params[:name]
+  session[:money] = params[:money].to_i
   new_game
   redirect '/game'
 end
@@ -147,6 +172,11 @@ get '/new_game' do
 end
 
 get '/game' do
+  if calc_value(session[:player_hand]) == 21
+    @success = "You hit Blackjack!"
+    @show_hit_or_stay_buttons = false
+    game_win
+  end
   erb :game
 end
 
@@ -156,33 +186,34 @@ post '/game/player/hit' do
   if @player_val > 21
     @error = "Sorry, you bust..."
     @show_hit_or_stay_buttons = false
-    @game_over = true
+    game_lose
   elsif @player_val == 21
-    @success = "Congratulations you hit blackjack"
+    @success = "You hit blackjack!"
     @show_hit_or_stay_buttons = false
-    @game_over = true
+    game_win
   end
 
   erb :game
 end
 
 get '/game/dealer' do
+  @show_dealer_second_card = true
   @dealer_val = calc_value(session[:dealer_hand])
   @show_hit_or_stay_buttons = false
   if @dealer_val < 17
     @show_dealer_hit_button = true
   elsif @dealer_val == 21
-    @success = "Dealer hit blackjack"
-    @game_over = true
+    @error = "Dealer hit blackjack"
+    game_lose
   elsif @dealer_val > 21
-    @error = "Dealer busts"
-    @game_over = true
+    @success = "Dealer busts"
+    game_win
   elsif @dealer_val < calc_value(session[:player_hand])
-    @success = "Player wins!"
-    @game_over = true
+    @success = "Player's hand value is higher"
+    game_win
   elsif @dealer_val >= calc_value(session[:player_hand])
-    @success = "Dealer wins."
-    @game_over = true
+    @error = "Dealer wins."
+    game_lose
   else
     @error = "This condition shouldn't be reached..."
   end
@@ -215,9 +246,6 @@ end
 #
 # Persistent (session) variables
 # money
-# player hand DONE
-# dealer hand DONE
-# deck DONE
 #
 # Remember the MVC model. Let's think about creating this welcome in those terms.
 # It seems to me to make the most sense to start with our model, then create controllersm

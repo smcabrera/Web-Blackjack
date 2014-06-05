@@ -1,11 +1,15 @@
 
 <div class="well">
   <h4>Dealer's Hand</h4>
-  <% if session[:dealer_hand] %>
+  <% unless @show_dealer_second_card && session[:dealer_hand] %>
+    <%= card_image ( session[:dealer_hand][0] )%>
+    <%= "<img src='/images/cards/cover.jpg' class='card_image'/>" %>
+  <% else %>
     <% session[:dealer_hand].each do |card| %>
-      <%= card_image( card )%>
-      <% end %>
+        <%= card_image( card )%>
+    <% end %>
   <% end %>
+
   <% if @show_dealer_hit_button%>
     <form method="post" action="/game/dealer/hit">
       <input id="hit_form" type="submit" class='btn btn-primary btn-large' value="Hit"/>
@@ -41,7 +45,6 @@
   </form>
 <% end %>
 
-<br>
 <br>
 
 </div>
