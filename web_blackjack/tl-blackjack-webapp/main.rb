@@ -21,6 +21,12 @@ helpers do
     end
   end
 
+  def valid_bet?(bet)
+    bet = bet.to_i
+    money = session[:money].to_i
+    return bet > 0 && bet <= money
+  end
+
   def calc_value(hand)
     value = 0
     total = 0
@@ -92,8 +98,8 @@ helpers do
     session[:dealer_hand] = []
     session[:dealer_hand] << session[:deck].shift
     session[:dealer_hand] << session[:deck].shift
-    session[:bet] = 10
     session[:money] ||= 100
+
   end
 
   def hit
@@ -162,13 +168,23 @@ post '/set_name' do
 
   session[:name] = params[:name]
   session[:money] = params[:money].to_i
-  new_game
-  redirect '/game'
+  redirect '/new_game'
 end
 
 get '/new_game' do
   new_game
-  redirect '/game'
+  erb :bet
+end
+
+post '/new_game' do
+  erb :bet
+  if valid_bet? params[:bet]
+    session[:bet] = params[:bet].to_i
+    redirect '/game'
+  else
+    @error = "Please provide bet greater than zero and smaller than your total money"
+    halt erb :bet
+  end
 end
 
 get '/game' do
