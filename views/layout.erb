@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>My First App</title>
+    <title>Blackjack</title>
     <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/application.css">
   </head>
@@ -11,12 +11,9 @@
       <div class="navbar-inner">
         <div class="container">
             <ul class="nav">
-              <li><a href="/game" class=''>Home</a></li>
-              <li>
-                <form method="post" action="/new_game">
-                  <button type="submit"  class='btn btn-submit'>New Game</button>
-                </form>
-              </li>
+              <li><a href="/ask_name">Start Over</a></li>
+              <li><a href="/new_game">New Round</a></li>
+              <li><a href="#">Money: <%= session[:money] %></a></li>
             </ul>
         </div>
       </div>
@@ -26,7 +23,10 @@
     <%if @error %>
       <div class="alert alert-error"><%=@error%></div>
     <% end %>
-      <%= yield %>
+    <%if @success %>
+      <div class="alert alert-success"><%=@success%></div>
+    <% end %>
+       <%= yield %>
   </div>
   </body>
 </html>

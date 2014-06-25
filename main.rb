@@ -5,21 +5,44 @@ require 'pry'
 set :sessions, true
 
 helpers do
+  def valid_money?(money)
+    money.to_i > 0
+  end
+
+  def valid_name?(name)
+    if name == "" then false
+    elsif name.include? 'a' then true
+    elsif name.include? 'e' then true
+    elsif name.include? 'i' then true
+    elsif name.include? 'o' then true
+    elsif name.include? 'u' then true
+    else
+      false
+    end
+  end
+
+  def valid_bet?(bet)
+    bet = bet.to_i
+    money = session[:money].to_i
+    return bet > 0 && bet <= money
+  end
 
   def calc_value(hand)
     value = 0
     total = 0
     ace = false # ask about a better way...
-    hand.each do |card|
-      if card[0] == 'j' || card[0] == 'q' || card[0] == 'k'
-        value = 10
-      elsif card[0] == 'a'
-        value = 1
-        ace = true
-      else
-        value = card[0].to_i
+    if hand
+      hand.each do |card|
+        if card[0] == 'j' || card[0] == 'q' || card[0] == 'k'
+          value = 10
+        elsif card[0] == 'a'
+          value = 1
+          ace = true
+        else
+          value = card[0].to_i
+        end
+          total += value
       end
-        total += value
     end
     # aces count as 11 when it would be beneficial for them to do so
     total += 10 if ace == true && total < 12
@@ -43,7 +66,7 @@ helpers do
     rank_names = {
     :'2'=> 'Two', :'3'=> 'Three', :'4'=> 'Four', :'5'=> 'Five',
     :'6'=> 'Six', :'7'=> 'Seven', :'8'=> 'Eight', :'9'=> 'Nine',
-    :'10'=> 'Ten', :'j'=> 'Jack', :'q'=> 'Queen', :'k'=> 'King', :'a'=> 'Ace'
+    :'10'=> 'Ten', :'j'=> 'jack', :'q'=> 'queen', :'k'=> 'king', :'a'=> 'ace'
     }
     rank_names[rank_symbol]
   end
@@ -51,7 +74,7 @@ helpers do
   def suit_name(card)
     suit_symbol = card[1].to_s.to_sym
     suit_names = {
-      :'c'=>'Clubs', :'d'=> 'Diamonds', :'h'=> 'Hearts', :'s'=> 'Spades'}
+      :'c'=>'clubs', :'d'=> 'diamonds', :'h'=> 'hearts', :'s'=> 'spades'}
     suit_names[suit_symbol]
   end
 
@@ -75,11 +98,48 @@ helpers do
     session[:dealer_hand] = []
     session[:dealer_hand] << session[:deck].shift
     session[:dealer_hand] << session[:deck].shift
+    session[:money] ||= 100
+
   end
 
   def hit
     session[:player_hand] << session[:deck].shift
   end
+
+  def dealer_hit
+    session[:dealer_hand] << session[:deck].shift
+  end
+
+  def card_image(card)
+    rank = ""
+    suit = ""
+    if card[0].to_i == 0
+      rank = rank_name(card)
+    else
+      rank = card[0].to_i
+    end
+    suit = suit_name(card)
+    "<img src='/images/cards/#{suit}_#{rank}.jpg' class='card_image'/>"
+  end
+
+  def game_win
+    session[:money] += session[:bet]
+    @success += "<br>Congratulations! You won #{session[:bet]}$<br>You now have: #{session[:money]}$"
+    @game_over = true
+  end
+
+  def game_lose
+    session[:money] -= session[:bet]
+    @error += "<br>Sorry...you lost #{session[:bet]}$<br>You now have: #{session[:money]}$"
+    @game_over = true
+  end
+end
+
+before do
+   @show_hit_or_stay_buttons = true
+   @show_dealer_hit_button = false
+   @game_over = false
+   @show_dealer_second_card = false
 end
 
 get '/' do
@@ -90,30 +150,102 @@ get '/' do
   end
 end
 
-#When web app first loads ensure session has 'username' set.
-#If not, redirect to a form to set the username.
-post '/new_game' do
-  new_game
-  redirect '/game'
+get '/ask_name' do
+  erb :ask_name
 end
 
 post '/set_name' do
+  unless valid_name? params[:name]
+    @error = "Valid name is required"
+    halt erb :ask_name
+  end
+
+# Insert validation helper funciton here
+  unless valid_money? params[:money]
+    @error = "Please give a number greater than zero for starting money"
+    halt erb :ask_name
+  end
+
   session[:name] = params[:name]
-  redirect '/game'
+  session[:money] = params[:money].to_i
+  redirect '/new_game'
+end
+
+get '/new_game' do
+  new_game
+  erb :bet
+end
+
+post '/new_game' do
+  erb :bet
+  if valid_bet? params[:bet]
+    session[:bet] = params[:bet].to_i
+    redirect '/game'
+  else
+    @error = "Please provide bet greater than zero and smaller than your total money"
+    halt erb :bet
+  end
 end
 
 get '/game' do
-  # Set initial game state
+  if calc_value(session[:player_hand]) == 21
+    @success = "You hit Blackjack!"
+    @show_hit_or_stay_buttons = false
+    game_win
+  end
   erb :game
 end
 
-post '/hit' do
+post '/game/player/hit' do
   hit
+  @player_val = calc_value(session[:player_hand])
+  if @player_val > 21
+    @error = "Sorry, you bust..."
+    @show_hit_or_stay_buttons = false
+    game_lose
+  elsif @player_val == 21
+    @success = "You hit blackjack!"
+    @show_hit_or_stay_buttons = false
+    game_win
+  end
+
   erb :game
 end
 
-post '/stay' do
+get '/game/dealer' do
+  @show_dealer_second_card = true
+  @dealer_val = calc_value(session[:dealer_hand])
+  @show_hit_or_stay_buttons = false
+  if @dealer_val < 17
+    @show_dealer_hit_button = true
+  elsif @dealer_val == 21
+    @error = "Dealer hit blackjack"
+    game_lose
+  elsif @dealer_val > 21
+    @success = "Dealer busts"
+    game_win
+  elsif @dealer_val < calc_value(session[:player_hand])
+    @success = "Player's hand value is higher"
+    game_win
+  elsif @dealer_val >= calc_value(session[:player_hand])
+    @error = "Dealer wins."
+    game_lose
+  else
+    @error = "This condition shouldn't be reached..."
+  end
+
   erb :game
+end
+
+post '/game/player/stay' do
+  @success = "You have decided to stay"
+  @show_hit_or_stay_buttons = false
+  redirect '/game/dealer'
+end
+
+post '/game/dealer/hit' do
+  dealer_hit
+  redirect '/game/dealer'
 end
 
 ######################################################
@@ -130,9 +262,6 @@ end
 #
 # Persistent (session) variables
 # money
-# player hand DONE
-# dealer hand DONE
-# deck DONE
 #
 # Remember the MVC model. Let's think about creating this welcome in those terms.
 # It seems to me to make the most sense to start with our model, then create controllersm
