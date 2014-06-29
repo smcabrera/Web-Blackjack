@@ -83,11 +83,7 @@ helpers do
   end
 
   def display_hand(cards)
-    result = []
-    cards.each do |card|
-      result << "The #{rank_name(card)} of #{suit_name(card)}"
-    end
-    return result
+    cards.map {|card| card = "The #{rank_name(card)} of #{suit_name(card)}"}
   end
 
   def new_game
