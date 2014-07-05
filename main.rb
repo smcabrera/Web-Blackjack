@@ -11,6 +11,8 @@ helpers do
 
   def valid_name?(name)
     if name == "" then false
+    vowels = ['a', 'e', 'i', 'o', 'u']
+    name.chars.detect {|char| vowels.include? char}
     elsif name.include? 'a' then true
     elsif name.include? 'e' then true
     elsif name.include? 'i' then true
@@ -83,7 +85,7 @@ helpers do
   end
 
   def display_hand(cards)
-    cards.map {|card| card = "The #{rank_name(card)} of #{suit_name(card)}"}
+    cards.map {|card| "The #{rank_name(card)} of #{suit_name(card)}"}
   end
 
   def new_game
@@ -95,7 +97,6 @@ helpers do
     session[:dealer_hand] << session[:deck].shift
     session[:dealer_hand] << session[:deck].shift
     session[:money] ||= 100
-
   end
 
   def hit
